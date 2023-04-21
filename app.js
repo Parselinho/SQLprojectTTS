@@ -17,16 +17,13 @@ sequelize.authenticate()
     console.log('Database connection established successfully.');
     return sequelize.sync();
   })
-  .then(() => {
-    console.log('Models synced with the database.');
-  })
   .catch((error) => {
     console.error('Unable to connect to the database:', error);
   });
 
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
-app.set('view engine', 'jade');
+app.set('view engine', 'pug');
 
 app.use(logger('dev'));
 app.use(express.json());
@@ -34,12 +31,15 @@ app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
-app.use('/', indexRouter);
-app.use('/users', usersRouter);
+app.use('/', usersRouter);
+app.use('/books', usersRouter);
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
-  next(createError(404));
+  const err = createError(404);
+  err.status = 404;
+  err.message = 'Page not found';
+  next(err);
 });
 
 // error handler
@@ -48,9 +48,16 @@ app.use(function(err, req, res, next) {
   res.locals.message = err.message;
   res.locals.error = req.app.get('env') === 'development' ? err : {};
 
+  // set status and message properties if not already defined
+  err.status = err.status || 500;
+  err.message = err.message || 'Internal Server Error';
+
+  // log error details to the console
+  console.error(`Error ${err.status}: ${err.message}`);
+
   // render the error page
-  res.status(err.status || 500);
-  res.render('error');
+  res.status(err.status);
+  res.render('error', { err });
 });
 
 module.exports = app;
